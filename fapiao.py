@@ -46,10 +46,16 @@ def page_amount(page: pymupdf.Page) -> Decimal | None:
                                    Decimal(match.group().replace(",", ""))))
     text = compact(page.get_text())
     is_air = "航空" in text and "行程单" in text
+    is_rail = "铁路电子客票" in text
     # An ordinary VAT invoice's bare 合计 is before tax, so never use it
     # as a substitute for 价税合计.
     labels = ("小写", "价税合计", "总计", "合计") if is_air else (
         "小写", "价税合计", "总计", "实付金额", "支付金额")
+    # Railway e-tickets label the payable amount 票价 rather than 合计.
+    # Restrict this fallback to railway tickets: on airline receipts and VAT
+    # invoices a fare can be just one component of the final amount.
+    if is_rail:
+        labels += ("票价",)
     for label in labels:
         values = set()
         for anchor in page.search_for(label):
